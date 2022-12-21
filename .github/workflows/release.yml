@@ -33,7 +33,14 @@ jobs:
         with:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_TOKEN }}
+      - name: Docker Setup QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: build image
         run: |
           VERSION=$(git describe --tags --abbrev=0)
-          docker buildx build -t tensorchord/horust:${VERSION} -f envd.Dockerfile --pull --push .
+          docker buildx build \
+            -t tensorchord/horust:${VERSION} -f envd.Dockerfile \
+            --platform linux/amd64,linux/arm64 \
+            --pull --push .
