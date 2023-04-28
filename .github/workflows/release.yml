@@ -37,10 +37,19 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: build image
+      - name: build amd64 image
         run: |
           VERSION=$(git describe --tags --abbrev=0)
           docker buildx build \
             -t tensorchord/horust:${VERSION} -f envd.Dockerfile \
-            --platform linux/amd64,linux/arm64 \
+            --platform linux/amd64 \
+            --build-arg ARCH=x86_64 \
+            --pull --push .
+      - name: build arm64 image
+        run: |
+          VERSION=$(git describe --tags --abbrev=0)
+          docker buildx build \
+            -t tensorchord/horust:${VERSION} -f envd.Dockerfile \
+            --platform linux/arm64 \
+            --build-arg ARCH=aarch64 \
             --pull --push .
