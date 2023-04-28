@@ -1,4 +1,6 @@
-FROM quay.io/pypa/manylinux2014_x86_64 as builder
+ARG ARCH
+
+FROM quay.io/pypa/manylinux2014_${ARCH} as builder
 
 USER root
 
