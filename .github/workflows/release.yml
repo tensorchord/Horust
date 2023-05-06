@@ -22,9 +22,33 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
 
-  docker:
+  compile:
     needs: [test]
     if: github.repository == 'tensorchord/Horust'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        run: rustup update stable
+      - uses: taiki-e/install-action@cross
+      - name: Install cross-compilation tools
+        uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.target }}
+      - run: cross build --target ${{ matrix.target }} --release
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/horust
+
+  docker:
+    needs: [compile]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -33,23 +57,24 @@ jobs:
         with:
           username: ${{ secrets.DOCKERIO_USERNAME }}
           password: ${{ secrets.DOCKERIO_TOKEN }}
-      - name: Docker Setup QEMU
-        uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: build amd64 image
+      - run: mkdir arm64 && mkdir amd64
+      - name: Download linux/arm64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: aarch64-unknown-linux-gnu
+          path: arm64
+      - name: Download linux/amd64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: x86_64-unknown-linux-gnu
+          path: amd64
+      - run: chmod 755 arm64/horust &&  chmod 755 amd64/horust
+      - name: build multi-arch 
         run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          docker buildx build \
+            VERSION=$(git describe --tags --abbrev=0)
+            docker buildx build \
             -t tensorchord/horust:${VERSION} -f envd.Dockerfile \
-            --platform linux/amd64 \
-            --build-arg ARCH=x86_64 \
-            --pull --push .
-      - name: build arm64 image
-        run: |
-          VERSION=$(git describe --tags --abbrev=0)
-          docker buildx build \
-            -t tensorchord/horust:${VERSION} -f envd.Dockerfile \
-            --platform linux/arm64 \
-            --build-arg ARCH=aarch64 \
+            --platform linux/amd64,linux/arm64 \
             --pull --push .
