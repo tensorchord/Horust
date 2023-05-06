@@ -70,7 +70,7 @@ jobs:
         with:
           name: x86_64-unknown-linux-gnu
           path: amd64
-      - run: chmod 777 arm64/horust &&  chmod 777 amd64/horust
+      - run: chmod 755 arm64/horust &&  chmod 755 amd64/horust
       - name: build multi-arch 
         run: |
             VERSION=$(git describe --tags --abbrev=0)
